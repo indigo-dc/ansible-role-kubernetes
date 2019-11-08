@@ -13,5 +13,7 @@
     line: 'Environment="KUBELET_EXTRA_ARGS={{kubelet_extra_args}}"'
     regexp: '^Environment="KUBELET_EXTRA_ARGS'
     insertafter: '\[Service\]'
-  notify: restart kubelet
+  notify: 
+  - reload kubelet
+  - restart kubelet
   when: kubelet_extra_args != ''
