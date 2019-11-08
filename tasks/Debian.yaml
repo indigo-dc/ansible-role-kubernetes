@@ -39,7 +39,8 @@
   apt: name=kubelet,kubeadm,kubectl state=latest
   when: kube_version == "latest"
 
-- block:
+- name: Add NVIDIA block
+  block:
     - name: Add NVIDIA PPA
       apt_repository:
         repo: ppa:graphics-drivers/ppa

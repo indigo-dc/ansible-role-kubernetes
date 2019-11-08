@@ -2,7 +2,8 @@
 - name: Copy 'is_cluster_ready' file
   copy: dest=/bin/is_cluster_ready src=is_cluster_ready mode=0755
 
-- set_fact: kube_pod_network_cidr='192.168.0.0/16'
+- name: pod network
+  set_fact: kube_pod_network_cidr='192.168.0.0/16'
   when: kube_network == 'calico'
 
 - name: force handlers
@@ -14,7 +15,8 @@
 - name: wait Kube to start
   wait_for: port=6443
 
-- lineinfile:
+- name: iptables
+  lineinfile:
     dest: /etc/sysctl.d/k8s.conf
     regexp: '^net.bridge.bridge-nf-call-iptables'
     line: 'net.bridge.bridge-nf-call-iptables = 1'
@@ -22,35 +24,40 @@
   notify: sysctl-system
   when: kube_network == 'flannel' or kube_network == 'kube-router' or kube_network == 'romana'
 
-- block:
+- name: block flannel
+  block:
     - template: src=flannel-net.j2 dest=/tmp/flannel-net.yml
     - command: kubectl apply -f /tmp/flannel-net.yml creates=/etc/cni/net.d/10-flannel.conflist
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
   when: kube_network == 'flannel'
 
-- block:
+- name: block calico
+  block:
     - copy: src=calico-net.yaml dest=/tmp/calico-net.yaml
     - command: kubectl apply -f /tmp/calico-net.yaml creates=/var/etcd/calico-data
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
   when: kube_network == 'calico'
 
-- block:
+- name: block romana
+  block:
     - copy: src=romana-net.yml dest=/tmp/romana-net.yml
     - command: kubectl apply -f /tmp/romana-net.yml creates=/var/lib/romana/etcd-db
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
   when: kube_network == 'romana'
 
-- block:
+- name: block kuberouter
+  block:
     - copy: src=kuberouter-net.yaml dest=/tmp/kuberouter-net.yaml
     - command: kubectl apply -f /tmp/kuberouter-net.yaml creates=/etc/cni/net.d/10-kuberouter.conf
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
   when: kube_network == 'kube-router'
 
-- block:
+- name: block weave
+  block:
     - copy: src=weave-net.yaml dest=/tmp/weave-net.yaml
     - command: kubectl apply -f /tmp/weave-net.yaml creates=/etc/cni/net.d/10-weave.conf
       environment:
@@ -62,14 +69,16 @@
     KUBECONFIG: /etc/kubernetes/admin.conf
   when: kube_install_helm
 
-- block:
+- name: block kube dash
+  block:
     - copy: src=kubernetes-dashboard.yaml dest=/tmp/kubernetes-dashboard.yaml
     - command: kubectl apply -f /tmp/kubernetes-dashboard.yaml
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
   when: kube_deploy_dashboard
 
-- block:
+- name: block metrics
+  block:
     - copy: src=metrics-server.yaml dest=/tmp/metrics-server.yaml
     - command: kubectl apply -f /tmp/metrics-server.yaml
       environment:
@@ -110,28 +119,32 @@
   notify: restart kubeapi
   with_items: "{{ kube_apiserver_options }}"
 
-- copy:
+- name: copy kube.sh
+  copy:
     dest: /etc/profile.d/kube.sh
     content: "export KUBECONFIG=/etc/kubernetes/admin.conf"
   
 - name: force handlers
   meta: flush_handlers
 
-- block:
+- name: nginx
+  block:
     - copy: src=ingress-nginx.yaml dest=/tmp/ingress-nginx.yaml
     - command: kubectl apply -f /tmp/ingress-nginx.yaml
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
   when: kube_install_ingress
 
-- block:
+- name: block nvidia-device-plugin
+  block:
     - copy: src=nvidia-device-plugin.yml dest=/tmp/nvidia-device-plugin.yml
     - command: kubectl apply -f /tmp/nvidia-device-plugin.yml
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
   when: kube_nvidia_support
 
-- block:
+- name: kubernetes-dashboard-ingress
+  block:
     - copy: src=kubernetes-dashboard-ingress.yaml dest=/tmp/kubernetes-dashboard-ingress.yaml
     - command: kubectl apply -f /tmp/kubernetes-dashboard-ingress.yaml
       environment:
