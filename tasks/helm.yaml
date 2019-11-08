@@ -1,5 +1,6 @@
 ---
-- stat:
+- name: stat helm
+  stat:
     path: /usr/local/bin/helm
   register: helm
 
