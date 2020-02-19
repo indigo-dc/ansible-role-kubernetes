@@ -38,7 +38,14 @@ The variables that can be passed to this role and a brief description about them
 	# A set of git repos and paths to be applied in the cluster. Following this format:
 	# kube_apply_repos: [{repo: "https://github.com/kubernetes-incubator/metrics-server", version: "master", path: "deploy/1.8+/"}]
 	kube_apply_repos: []
-
+	# Flag to set Metrics-Server to be installed
+	kube_install_metrics: false
+	# Flag to set the nginx ingress controller to be installed
+	kube_install_ingress: false
+	# Flag to set the kubeapps UI to be installed
+	kube_install_kubeapps: false
+	# Extra options for the flannel plugin
+	kube_flanneld_extra_args: [] 
 
 Example Playbook
 ----------------
