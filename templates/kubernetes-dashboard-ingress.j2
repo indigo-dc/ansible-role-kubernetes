@@ -1,0 +1,31 @@
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: kubernetes-dashboard
+  namespace: kubernetes-dashboard
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+{% if kube_cert_manager %}
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+{% endif %}
+spec:
+{% if kube_cert_manager %}
+  tls:
+  - hosts:
+    - {{ public_hostname }}
+    secretName: {{ public_hostname }}
+{% endif %}
+  rules:
+{% if kube_cert_manager %}
+  - host: {{ public_hostname }}
+    http:
+{% else %}
+  - http:
+{% endif %}
+      paths:
+      - path: /dashboard/?(.*)
+        backend:
+          serviceName: kubernetes-dashboard
+          servicePort: 8443
